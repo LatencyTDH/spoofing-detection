@@ -13,6 +13,27 @@ The project contains:
 
 ---
 
+## Spoofing explained
+
+Spoofing is a type of market manipulation where a trader:
+
+1. Rapidly submits large visible orders away from the current price to create
+   the illusion of strong buying or selling pressure.
+2. Induces other participants (or algos) to adjust their own orders/pricing.
+3. Executes a genuine trade on the opposite side at a more favourable price.
+4. Quickly cancels the spoof orders before they are matched.
+
+Because the deceptive orders never intend to trade, the spoofer **misleads
+price‑discovery**, nudging the market in a direction that benefits their
+hidden intent.  
+The advantage is unfair because legitimate participants react to *false*
+liquidity, incur transaction costs, or provide better prices than they would
+have offered had the book reflected authentic interest.
+
+Regulators classify spoofing as market abuse; penalties include fines and
+trading bans.  This repository exists solely to **test and benchmark detection
+algorithms** without sending manipulative orders to a real venue.
+
 ## Quick start
 
 ```bash
@@ -56,23 +77,3 @@ sending them unless you replace the `LiveExchange` methods and remove
 
 ---
 
-## Spoofing explained
-
-Spoofing is a type of market manipulation where a trader:
-
-1. Rapidly submits large visible orders away from the current price to create
-   the illusion of strong buying or selling pressure.
-2. Induces other participants (or algos) to adjust their own orders/pricing.
-3. Executes a genuine trade on the opposite side at a more favourable price.
-4. Quickly cancels the spoof orders before they are matched.
-
-Because the deceptive orders never intend to trade, the spoofer **misleads
-price‑discovery**, nudging the market in a direction that benefits their
-hidden intent.  
-The advantage is unfair because legitimate participants react to *false*
-liquidity, incur transaction costs, or provide better prices than they would
-have offered had the book reflected authentic interest.
-
-Regulators classify spoofing as market abuse; penalties include fines and
-trading bans.  This repository exists solely to **test and benchmark detection
-algorithms** without sending manipulative orders to a real venue.
