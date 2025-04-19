@@ -1,0 +1,28 @@
+# .dockerignore
+
+# Python stuff
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Credentials / Output / Persistent Data
+.env
+output/
+do-not-commit/
+
+# Git / IDE / OS files
+.git/
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose.yml
+*.md # README etc.
+.vscode/
+.idea/
+*.DS_Store
+
