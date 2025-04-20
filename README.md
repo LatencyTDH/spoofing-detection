@@ -13,7 +13,7 @@ The project contains:
 
 ---
 
-## Spoofing explained
+## Spoofing Explained
 
 Spoofing is a type of market manipulation where a trader:
 
@@ -33,6 +33,33 @@ have offered had the book reflected authentic interest.
 Regulators classify spoofing as market abuse; penalties include fines and
 trading bans.  This repository exists solely to **test and benchmark detection
 algorithms** without sending manipulative orders to a real venue.
+
+### Scenario
+
+1.  **Creating False Demand/Supply:**
+    *   The script places large buy orders (**spoof bids**) significantly below the current best bid, or large sell orders (**spoof asks**) significantly above the current best ask.
+    *   These orders are intentionally large to create a visible, yet misleading, impression of significant buying or selling interest on the order book.
+
+2.  **Inducing Market Reaction:**
+    *   Other market participants (traders or algorithms) observe these large, non-genuine orders.
+    *   They might misinterpret this as real market pressure:
+        *   Large **spoof bids** could suggest strong price support, potentially encouraging others to place *buy* orders at slightly higher prices or *sell* orders just above the perceived support level.
+        *   Large **spoof asks** could suggest strong price resistance, potentially encouraging others to place *sell* orders at slightly lower prices or *buy* orders just below the perceived resistance level.
+
+3.  **Executing the Real Trade:**
+    *   While the spoof orders are active and influencing perception, the user places a small, genuine order on the ***opposite*** side of the market compared to their spoof orders.
+    *   The goal is to execute this small order against the participants who reacted to the false information:
+        *   If spoofing with bids (creating fake buy pressure), the user places a small *sell* order, aiming to hit a bid that was potentially placed higher due to the fake support.
+        *   If spoofing with asks (creating fake sell pressure), the user places a small *buy* order, aiming to lift an offer that was potentially placed lower due to the fake resistance.
+    *   This potentially allows the user to get a slightly more favorable execution price for their small, real trade than they would have otherwise.
+
+4.  **Rapid Cancellation:**
+    *   Immediately after placing the real order (or within fractions of a second, ideally after the real order is filled), the script ***rapidly cancels*** all the large spoof orders.
+    *   The critical aspect is that there was *never any intention* for these large spoof orders to actually be executed. Their sole purpose was to manipulate perception.
+
+5.  **Profit Accumulation:**
+    *   By repeating this cycle—place spoofs, induce reaction, execute small real trade, cancel spoofs—very quickly and frequently, the user aims to capture tiny price advantages on each real trade.
+    *   Accumulated over numerous cycles, these small profits can become substantial, especially when trading high volumes or using leverage. The profit is derived directly from misleading other market participants into trading at slightly disadvantageous prices based on the false order book information.
 
 ## Quick start
 
