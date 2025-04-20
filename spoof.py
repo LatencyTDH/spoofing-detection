@@ -50,6 +50,7 @@ log = logging.getLogger("spoof-sim")
 ###############################################################################
 # Common data structures
 ###############################################################################
+# Define market side enum and Order dataclass for tracking limit orders and fills.
 class Side(str, enum.Enum):
     BUY = "buy"
     SELL = "sell"
@@ -69,6 +70,7 @@ class Order:
 ###############################################################################
 # Exchange interface (simple home‑grown)
 ###############################################################################
+# Base async Exchange interface: connect, retrieve top-of-book, place and cancel orders.
 class Exchange:
     """
     Minimal async interface.  Implementations:
@@ -94,6 +96,7 @@ class Exchange:
 ###############################################################################
 class SimExchange(Exchange):
     def __init__(self) -> None:
+        # Initialize in-memory order book for buy/sell sides and trade history list.
         self.book: Dict[Side, Deque[Order]] = {
             Side.BUY: deque(),
             Side.SELL: deque(),
@@ -101,9 +104,11 @@ class SimExchange(Exchange):
         self.trades: List[Dict] = []
 
     async def connect(self) -> None:
+        # No external connection required; simulation ready immediately.
         log.info("SimExchange ready.")
 
     async def get_top(self, _symbol: str) -> Dict[str, float]:
+        # Return best bid/ask prices, use fallback quotes if book is empty.
         bid = self.book[Side.BUY][0].price if self.book[Side.BUY] else 49_999.5
         ask = self.book[Side.SELL][0].price if self.book[Side.SELL] else 50_000.5
         return {"bid": bid, "ask": ask}
@@ -111,12 +116,14 @@ class SimExchange(Exchange):
     async def place_limit(
         self, symbol: str, side: Side, price: float, size: float, cid: str
     ) -> str:
+        # Place a limit order into the book, then attempt to match orders.
         order = Order(id=cid, side=side, price=price, size=size)
         self._insert(order)
         self._match()
         return order.id
 
     async def cancel(self, order_id: str) -> None:
+        # Cancel an open order by its client id if present in the book.
         for q in self.book.values():
             for o in list(q):
                 if o.id == order_id and o.status == "open":
@@ -126,6 +133,7 @@ class SimExchange(Exchange):
 
     # ---------- internal ----------
     def _insert(self, order: Order) -> None:
+        # Insert order into sorted deque: buys highest-first, sells lowest-first.
         q = self.book[order.side]
         cmp = (lambda p1, p2: p1 > p2) if order.side == Side.BUY else (lambda p1, p2: p1 < p2)
         idx = 0
@@ -134,6 +142,7 @@ class SimExchange(Exchange):
         q.insert(idx, order)
 
     def _match(self) -> None:
+        # Continuously match top buy/sell orders when bid >= ask, record trades.
         while self.book[Side.BUY] and self.book[Side.SELL]:
             buy = self.book[Side.BUY][0]
             sell = self.book[Side.SELL][0]
@@ -155,6 +164,7 @@ class SimExchange(Exchange):
 ###############################################################################
 # 2) Live exchange *stub* – defaults to DRY‑RUN (paper)
 ###############################################################################
+# LiveExchange logs dry-run orders or raises errors if real trading is attempted.
 class LiveExchange(Exchange):
     def __init__(self, api_key: str, api_secret: str, paper: bool = True) -> None:
         self.key = api_key
@@ -201,12 +211,13 @@ async def spoof_cycle(
     hold: float,
     exec_delay: float,
 ) -> None:
+    # Retrieve current top-of-book quotes.
     top = await ex.get_top(symbol)
     bid, ask = top["bid"], top["ask"]
     log.info("Top: bid %.2f | ask %.2f", bid, ask)
 
     spoof_ids: List[str] = []
-    # 1) bulk spoof bids
+    # Step 1: Place multiple spoof bid orders to create false buying pressure.
     for i in range(layers):
         px = bid - price_offset * (i + 1)
         cid = f"sp_bid_{uuid.uuid4().hex[:8]}"
@@ -215,11 +226,11 @@ async def spoof_cycle(
 
     await asyncio.sleep(exec_delay)
 
-    # 2) Place “real” small sell
+    # Step 2: Small pause, then submit a real order on the opposite side.
     real_cid = f"real_{uuid.uuid4().hex[:8]}"
     await ex.place_limit(symbol, Side.SELL, bid, 0.01, real_cid)
 
-    # 3) hold then cancel spoof
+    # Step 3: Hold spoof orders for a period, then cancel them to avoid fills.
     await asyncio.sleep(hold)
     await asyncio.gather(*(ex.cancel(oid) for oid in spoof_ids))
     log.info("Cycle complete.")
@@ -230,6 +241,7 @@ async def spoof_cycle(
 ###############################################################################
 @asynccontextmanager
 async def cancellation_scope():
+    # Setup SIGINT/SIGTERM handlers for graceful shutdown of async loops.
     loop = asyncio.get_running_loop()
     cancel = asyncio.Event()
 
@@ -248,6 +260,7 @@ async def cancellation_scope():
 
 
 async def run_strategy(args):
+    # Instantiate SimExchange or LiveExchange based on CLI mode and environment.
     if args.mode == "sim":
         ex: Exchange = SimExchange()
     else:
@@ -281,6 +294,7 @@ async def run_strategy(args):
 # CLI
 ###############################################################################
 def parse_cli() -> argparse.Namespace:
+    # Define command-line flags for mode, symbol, spoof layers, timing, etc.
     p = argparse.ArgumentParser(description="Spoof‑sim test harness")
     p.add_argument("--mode", choices=["sim", "live"], default="sim")
     p.add_argument("--symbol", default="BTC/USDT")
@@ -297,6 +311,7 @@ def parse_cli() -> argparse.Namespace:
 # Entry‑point
 ###############################################################################
 def main() -> None:
+    # Parse CLI arguments and run the spoofing strategy loop until interrupted.
     args = parse_cli()
     try:
         asyncio.run(run_strategy(args))
